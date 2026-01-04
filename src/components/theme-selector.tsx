@@ -1,19 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Palette } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button"; // using a simple button
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ThemeSelector = () => {
-  const [menuOpen, setMenuOpen] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 
   // update html class for theme
@@ -22,22 +16,27 @@ const ThemeSelector = () => {
     document.documentElement.className = resolvedTheme || "";
   }, [resolvedTheme]);
 
-  return (
-    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          {(resolvedTheme || "theme").charAt(0).toUpperCase() + (resolvedTheme || "theme").slice(1)}
-        </Button>
-      </DropdownMenuTrigger>
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
 
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light Theme</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark Theme</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("legacy")}>Legacy Theme</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>System Theme</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="flex items-center gap-2 cursor-pointer"
+            aria-label="Toggle theme"
+          >
+            {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Toggle mode</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

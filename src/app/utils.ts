@@ -4,7 +4,7 @@
 // also keywords that might fall into dates or just takeout in general
 
 //TODO: put back amazon
-export const AMBIGUOUS_KEYWORDS = ["paypal", "venmo", "cash app", "zelle", "7-eleven", "restaurant", "cafe"];
+export const AMBIGUOUS_KEYWORDS = ["paypal", "venmo", "cash app", "zelle", "7-eleven", "restaurant", "coffee", "entertainment", "amazon"];
 
 // keywords mapped to categories
 export const CATEGORY_KEYWORDS: Record<string, string> = {
@@ -17,13 +17,15 @@ export const CATEGORY_KEYWORDS: Record<string, string> = {
   uber: "Transportation",
   shopping: "Life & Extras",
   gambling: "Life & Extras",
-  amazon: "Life & Extras",
   chipotle: "Takeout",
   "chick-fil-a": "Takeout",
   "raising cane's": "Takeout",
   subway: "Takeout",
   popeye: "Takeout",
   "mo bettahs": "Takeout",
+  games: "Hobbies",
+  books: "Hobbies",
+  music: "Hobbies",
 };
 
 export const categories = [

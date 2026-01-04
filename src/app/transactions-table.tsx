@@ -143,26 +143,11 @@ export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: 
             </SelectContent>
           </Select>
         ) : (
-          <div onDoubleClick={() => setIsEditing(true)} className="cursor-pointer">
+        <div onDoubleClick={() => setIsEditing(true)} className={`cursor-pointer ${row.original.category === "Needs Review" ? "text-yellow-500 animate-pulse" : ""}`}>
             {value}
           </div>
         );
       },
-    },
-    {
-      accessorKey: "type",
-      header: ({ column }: any) => (
-        <Button
-          className="flex w-full justify-start gap-2"
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Type
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      ),
-      cell: ({ row }) => <span className="capitalize">{row.original.type}</span>,
     },
   ];
 

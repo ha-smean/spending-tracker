@@ -11,12 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ThemeSelector from "@/components/theme-selector";
 import { CategoryBudgetDashboard } from "./category-budgets";
 import { TransactionsTable } from "./transactions-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(() => loadLS("transactions", []));
   const [reviewQueue, setReviewQueue] = useState<Transaction[]>(() => loadLS("reviewQueue", []));
   const [reviewing, setReviewing] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   // filter transactions for the selected month
   const monthlyTransactions = useMemo(
@@ -54,7 +57,9 @@ export default function App() {
           if (isNaN(rawAmount)) return;
           if (shouldIgnoreTransaction(row["Description"], row["Detailed Category"])) return;
 
-          const description = `${(row["Description"] || "").trim()} ${(row["Detailed Category"] || "").trim()} ${(row["Primary Category"] || "").trim()}`.trim();
+          const description = `${(row["Description"] || "").trim()} ${(row["Detailed Category"] || "").trim()} ${(
+            row["Primary Category"] || ""
+          ).trim()}`.trim();
           const isExpense = rawAmount < 0;
 
           const keywordCategory = categorizeTransaction(description);
@@ -65,14 +70,12 @@ export default function App() {
             description: row["Description"],
             amount: Math.abs(rawAmount),
             type: isExpense ? "expense" : "income",
-            category:
-              keywordCategory !== "Uncategorized"
-                ? keywordCategory
-                : row["Detailed Category"],
+            category: keywordCategory !== "Uncategorized" ? keywordCategory : row["Detailed Category"],
           };
 
           if (isExpense && isAmbiguous(description) && keywordCategory === "Uncategorized") {
             needsReview.push({ ...tx });
+            clean.push({ ...tx, category: "Needs Review" });
           } else {
             clean.push(tx);
           }
@@ -95,25 +98,16 @@ export default function App() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Spending Tracker</h1>
-      <ThemeSelector />
-      <div>
-        <Button
-          className="cursor-pointer"
-          size="sm"
-          onClick={() => {
-            localStorage.clear();
-            window.location.reload();
-          }}
-        >
-          Clear local storage
-        </Button>
+      <h1 className="flex justify-between text-2xl font-bold">Spending Tracker <ThemeSelector /></h1>
+      
+
+      <div className="grid w-full max-w-sm items-center gap-3">
+        <Input
+          type="file"
+          onChange={(e) => e.target.files && handleCSV(e.target.files[0])}
+        />
       </div>
 
-      {/* CSV Upload */}
-      <input type="file" accept=".csv" onChange={(e) => e.target.files && handleCSV(e.target.files[0])} />
-
-      {/* Review Modal */}
       {reviewing && current && (
         <Dialog open={reviewing} onOpenChange={setReviewing}>
           <DialogContent className="w-full max-w-md">
@@ -130,9 +124,6 @@ export default function App() {
                 </div>
                 <div>
                   <strong>Amount:</strong> ${current.amount.toFixed(2)}
-                </div>
-                <div>
-                  <strong>Type:</strong> {current.type}
                 </div>
               </div>
               <Select key={current.id} value="" onValueChange={(value) => resolve(current, value)}>
@@ -158,7 +149,7 @@ export default function App() {
       {reviewQueue.length > 0 && monthlyTransactions.length > 0 && (
         <div className="flex gap-1">
           <Button
-            className="flex-1 bg-yellow-500 hover:bg-yellow-600 font-semibold cursor-pointer"
+            className="flex-1 bg-yellow-500 hover:bg-yellow-500/90 font-semibold cursor-pointer"
             onClick={() => setReviewing(true)}
           >
             <AlertCircle className="h-4 w-4" />
@@ -210,17 +201,46 @@ export default function App() {
           <CardTitle>Transactions</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
- <TransactionsTable 
+          <TransactionsTable
             monthlyTransactions={monthlyTransactions}
             onTransactionUpdate={(updatedTransaction) => {
-              setTransactions((prev) =>
-                prev.map((t) =>
-                  t.id === updatedTransaction.id ? updatedTransaction : t
-                )
-              );
+              setTransactions((prev) => prev.map((t) => (t.id === updatedTransaction.id ? updatedTransaction : t)));
             }}
-          />        </CardContent>
+          />{" "}
+        </CardContent>
       </Card>
+      <div>
+        <>
+          <Button className="cursor-pointer" variant={"destructive"} size="sm" onClick={() => setShowClearDialog(true)}>
+            Clear local storage
+          </Button>
+
+          <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Clear Local Storage</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to clear all data? This action cannot be undone.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowClearDialog(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    localStorage.clear();
+                    window.location.reload();
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      </div>
     </div>
   );
 }
