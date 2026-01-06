@@ -5,14 +5,15 @@ import type { Transaction } from "./models";
 import { categories, categorizeTransaction, isAmbiguous, loadLS, months, shouldIgnoreTransaction } from "./utils";
 import { MonthlyCategoryPie } from "./monthly-spending-pie";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, FilePlus, FilePlusCorner, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ThemeSelector from "@/components/theme-selector";
 import { CategoryBudgetDashboard } from "./category-budgets";
 import { TransactionsTable } from "./transactions-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CRUDCategoryBudget } from "./crud-category-budget";
 
 export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(() => loadLS("transactions", []));
@@ -20,6 +21,15 @@ export default function App() {
   const [reviewing, setReviewing] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>(() => loadLS("categoryBudgets", {}));
+  const [editingBudget, setEditingBudget] = useState(false);
+
+  const [showOnboardingDialog, setShowOnboardingDialog] = useState(() => {
+    const income = loadLS("income", null);
+    return income === null && Object.keys(categoryBudgets).length === 0;
+  });
+
+  const current = reviewQueue[0];
 
   // filter transactions for the selected month
   const monthlyTransactions = useMemo(
@@ -41,6 +51,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories]);
+  useEffect(() => {
+    localStorage.setItem("categoryBudgets", JSON.stringify(categoryBudgets));
+  }, [categoryBudgets]);
 
   // CSV upload and parsing
   function handleCSV(file: File) {
@@ -54,15 +67,22 @@ export default function App() {
 
         results.data.forEach((row: any) => {
           const rawAmount = Number(row["Amount"]);
-          if (isNaN(rawAmount)) return;
-          if (shouldIgnoreTransaction(row["Description"], row["Detailed Category"])) return;
+          if (isNaN(rawAmount)) {
+            throw new Error(`Invalid amount for transaction: ${row["Description"]} amount: ${row["Amount"]}`);
+          }
+          // currently ignoring transfers to and from accounts and wages
+          if (shouldIgnoreTransaction(row["Description"], row["Detailed Category"])) {
+            return;
+          }
 
-          const description = `${(row["Description"] || "").trim()} ${(row["Detailed Category"] || "").trim()} ${(
+          // construct description for better categorization
+          const description = `${row["Description"] || ""} ${row["Detailed Category"] || ""} ${
             row["Primary Category"] || ""
-          ).trim()}`.trim();
-          const isExpense = rawAmount < 0;
+          }`.trim();
 
-          const keywordCategory = categorizeTransaction(description);
+          const isExpense = rawAmount < 0;
+          // get custom category based on constructed description
+          const customCategory = categorizeTransaction(description);
 
           const tx: Transaction = {
             id: crypto.randomUUID(),
@@ -70,18 +90,15 @@ export default function App() {
             description: row["Description"],
             amount: Math.abs(rawAmount),
             type: isExpense ? "expense" : "income",
-            category: keywordCategory !== "Uncategorized" ? keywordCategory : row["Detailed Category"],
+            // use custom category if available, otherwise fallback to detailed category from CSV
+            category: customCategory !== "Uncategorized" ? customCategory : row["Detailed Category"],
           };
 
-          if (isExpense && isAmbiguous(description) && keywordCategory === "Uncategorized") {
-            needsReview.push({ ...tx });
-            clean.push({ ...tx, category: "Needs Review" });
-          } else {
-            clean.push(tx);
-          }
+          const needsManualReview = isExpense && isAmbiguous(description) && customCategory === "Uncategorized";
+          (needsManualReview ? needsReview : clean).push(tx);
         });
 
-        setTransactions((prev) => [...prev, ...clean]);
+        setTransactions((prev) => [...prev, ...clean, ...needsReview]);
         setReviewQueue((prev) => [...prev, ...needsReview]);
         if (needsReview.length > 0) setReviewing(true);
       },
@@ -90,27 +107,50 @@ export default function App() {
 
   // review logic
   function resolve(tx: Transaction, category: string) {
-    setTransactions((prev) => [...prev, { ...tx, category }]);
+    setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, category } : t)));
     setReviewQueue((prev) => prev.filter((t) => t.id !== tx.id));
   }
 
-  const current = reviewQueue[0];
-
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="flex justify-between text-2xl font-bold">Spending Tracker <ThemeSelector /></h1>
-      
-
-      <div className="grid w-full max-w-sm items-center gap-3">
-        <Input
-          type="file"
-          onChange={(e) => e.target.files && handleCSV(e.target.files[0])}
-        />
+    <div className="grid grid-cols-1 gap-3 p-6  mx-auto ">
+      <div className="flex justify-between text-2xl font-bold">
+        <div className="pl-4">Spending Tracker</div>
+        <div className="flex">
+          <Button variant="ghost" size="default" onClick={() => document.getElementById("csv-upload")?.click()}>
+            <FilePlusCorner size={40} />
+          </Button>
+          <Input
+            id="csv-upload"
+            className="hidden"
+            type="file"
+            onChange={(e) => e.target.files && handleCSV(e.target.files[0])}
+          />
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => {
+              setShowOnboardingDialog(true);
+              setEditingBudget(true);
+            }}
+          >
+            <Settings />
+          </Button>
+          <ThemeSelector />{" "}
+        </div>
       </div>
+
+      <CRUDCategoryBudget
+        showOnboardingDialog={showOnboardingDialog}
+        setShowOnboardingDialog={setShowOnboardingDialog}
+        categoryBudgets={categoryBudgets}
+        setCategoryBudgets={setCategoryBudgets}
+        categories={categories}
+        isEditingBudget={editingBudget}
+      />
 
       {reviewing && current && (
         <Dialog open={reviewing} onOpenChange={setReviewing}>
-          <DialogContent className="w-full max-w-md">
+          <DialogContent className="w-full max-w-lg">
             <DialogHeader>
               <DialogTitle>Review Transaction</DialogTitle>
             </DialogHeader>
@@ -146,31 +186,20 @@ export default function App() {
         </Dialog>
       )}
 
-      {reviewQueue.length > 0 && monthlyTransactions.length > 0 && (
-        <div className="flex gap-1">
-          <Button
-            className="flex-1 bg-yellow-500 hover:bg-yellow-500/90 font-semibold cursor-pointer"
-            onClick={() => setReviewing(true)}
-          >
-            <AlertCircle className="h-4 w-4" />
-            {reviewQueue.length} transactions need review
-          </Button>
-        </div>
-      )}
-      {/* <Card className="p-4">
-        <CardHeader>
-          <CardTitle>Category Budgets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryBudgetDashboard monthlyTransactions={monthlyTransactions} selectedMonth={selectedMonth} />
-        </CardContent>
-      </Card> */}
-
       {/* Pie Chart with shadcn Card */}
-      <Card className="flex flex-col">
-        <CardHeader className="pb-0 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Spending by Category</CardTitle>
-
+      <Card className="flex flex-col bg-transparent border-none">
+        {reviewQueue.length > 0 && monthlyTransactions.length > 0 && (
+          <div className="flex gap-1">
+            <Button
+              className="flex-1 bg-yellow-500 hover:bg-yellow-500/90 font-semibold cursor-pointer"
+              onClick={() => setReviewing(true)}
+            >
+              <AlertCircle className="h-4 w-4" />
+              {reviewQueue.length} transactions need review
+            </Button>
+          </div>
+        )}
+        <CardHeader className="pb-0 flex justify-end">
           {/* Month Select */}
           <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
             <SelectTrigger className="w-32 mt-2 sm:mt-0">
@@ -190,17 +219,23 @@ export default function App() {
           <MonthlyCategoryPie monthlyTransactions={monthlyTransactions} categories={categories} />
         </CardContent>
 
-        <CardFooter className="flex-col gap-2 text-sm">
+        <CardFooter className="flex-col gap-2 text-sm items-end">
           {/* <MonthlyComparison transactions={transactions} selectedMonth={selectedMonth} /> */}
         </CardFooter>
       </Card>
 
+      <CategoryBudgetDashboard
+        monthlyTransactions={monthlyTransactions}
+        selectedMonth={selectedMonth}
+        categoryBudgets={categoryBudgets}
+      />
+
       {/* Transactions Table */}
-      <Card>
+      <Card className="bg-transparent border-none">
         <CardHeader>
-          <CardTitle>Transactions</CardTitle>
+          <CardTitle className="text-lg font-bold ">Transactions</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="">
           <TransactionsTable
             monthlyTransactions={monthlyTransactions}
             onTransactionUpdate={(updatedTransaction) => {
@@ -210,36 +245,7 @@ export default function App() {
         </CardContent>
       </Card>
       <div>
-        <>
-          <Button className="cursor-pointer" variant={"destructive"} size="sm" onClick={() => setShowClearDialog(true)}>
-            Clear local storage
-          </Button>
-
-          <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Clear Local Storage</DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to clear all data? This action cannot be undone.
-              </p>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowClearDialog(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    localStorage.clear();
-                    window.location.reload();
-                  }}
-                >
-                  Clear
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </>
+        <></>
       </div>
     </div>
   );

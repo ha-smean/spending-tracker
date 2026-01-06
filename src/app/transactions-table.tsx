@@ -14,7 +14,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { categories, loadLS } from "./utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/datepicker";
 import { ChangeDate } from "@/components/ui/change-date";
 import { Input } from "@/components/ui/input";
 
@@ -24,7 +23,9 @@ interface TransactionsTableProps {
 }
 
 export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: TransactionsTableProps) {
-  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([
+    { id: "date", desc: false },
+  ]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
   const columns: ColumnDef<Transaction>[] = [
     {
@@ -175,7 +176,8 @@ export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: 
         className="w-full"
       />
     </div>
-      <Table>
+      <div className="h-100 overflow-y-auto">
+        <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -185,7 +187,7 @@ export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: 
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        <TableBody >
           {table.getRowModel().rows.map((row) => (
             <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => (
@@ -195,6 +197,7 @@ export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: 
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

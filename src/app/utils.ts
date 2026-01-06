@@ -1,10 +1,17 @@
 // ------------------ Utils ------------------
 
-// ambiguous keywords that could belong to multiple categories, this will get flagged and user will review
-// also keywords that might fall into dates or just takeout in general
-
-//TODO: put back amazon
-export const AMBIGUOUS_KEYWORDS = ["paypal", "venmo", "cash app", "zelle", "7-eleven", "restaurant", "coffee", "entertainment", "amazon"];
+// ambiguous keywords that could belong to multiple categories, this will get flagged and user will need to review
+export const AMBIGUOUS_KEYWORDS = [
+  "paypal",
+  "venmo",
+  "cash app",
+  "zelle",
+  "7-eleven",
+  "restaurant",
+  "coffee",
+  "entertainment",
+  "amazon",
+];
 
 // keywords mapped to categories
 export const CATEGORY_KEYWORDS: Record<string, string> = {
@@ -41,6 +48,7 @@ export const categories = [
   { name: "Transportation", color: "var(--chart-10)" },
   { name: "Monthly Savings", color: "var(--chart-11)" },
   { name: "House Savings", color: "var(--chart-12)" },
+  { name: "Jazmin Purchases", color: "var(--chart-111)" },
 ];
 
 export const months = [
@@ -77,10 +85,14 @@ export function loadLS<T>(key: string, fallback: T): T {
  */
 export function isAmbiguous(desc: string) {
   const text = desc.toLowerCase();
-  console.log("Checking ambiguity for:", text);
+  // console.log("Checking ambiguity for:", text);
   return AMBIGUOUS_KEYWORDS.some((k) => text.includes(k));
 }
-
+/**
+ * Categorizes a transaction description based on predefined keywords.
+ * @param desc - The transaction description to categorize
+ * @returns The category name if a keyword match is found, otherwise "Uncategorized"
+ */
 export function categorizeTransaction(desc: string): string {
   const text = desc.toLowerCase();
   for (const keyword in CATEGORY_KEYWORDS) {
@@ -89,16 +101,16 @@ export function categorizeTransaction(desc: string): string {
   return "Uncategorized";
 }
 
+/**
+ * Determines if a transaction should be ignored based on its description and category.
+ * @param description - The transaction description
+ * @param category - The transaction category
+ * @returns `true` if the transaction should be ignored, `false` otherwise
+ */
 export function shouldIgnoreTransaction(description: string, category: string) {
   if (category === "Wages") return true;
-  // if (category.toLowerCase().includes("transfer")) return true;
   if (description.toLowerCase().includes("transfer to")) return true;
   if (description.toLowerCase().includes("transfer from")) return true;
-  // if (description.toLowerCase().includes("interest")) return true;
 
   return false;
 }
-
-
-
-

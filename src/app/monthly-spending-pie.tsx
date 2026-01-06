@@ -15,6 +15,7 @@ export function MonthlyCategoryPie({
       .map((cat) => {
         const totalRaw = monthlyTransactions
           .filter((t) => t.category === cat.name && t.type === "expense")
+          // .filter((t) => t.category === cat.name && t.type === "expense" && cat.name !== "Jazmin Purchases")
           .reduce((sum, t) => sum + t.amount, 0);
 
         const total = Math.round(totalRaw * 100) / 100;
@@ -30,30 +31,28 @@ export function MonthlyCategoryPie({
   const netTotal = totalIncome - totalExpenses;
 
   return (
-
-        <ChartContainer config={{}} className="aspect-square w-fit h-90">
-          <PieChart>
-            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-            <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={95} outerRadius={140} strokeWidth={5}>
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                        <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                          ${netTotal.toLocaleString()}
-                        </tspan>
-                        <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
-                          Total
-                        </tspan>
-                      </text>
-                    );
-                  }
-                }}
-              />
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-
+    <ChartContainer config={{}} className="aspect-square w-fit h-70">
+      <PieChart>
+        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+        <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={95} outerRadius={125} paddingAngle={1}>
+          <Label
+            content={({ viewBox }) => {
+              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                return (
+                  <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                    <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
+                      ${netTotal.toLocaleString()}
+                    </tspan>
+                    <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
+                      Total
+                    </tspan>
+                  </text>
+                );
+              }
+            }}
+          />
+        </Pie>
+      </PieChart>
+    </ChartContainer>
   );
 }
