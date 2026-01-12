@@ -5,7 +5,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ThemeSelector = () => {
   const { resolvedTheme, setTheme } = useTheme();
@@ -21,7 +21,6 @@ const ThemeSelector = () => {
   };
 
   return (
-    <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -36,7 +35,6 @@ const ThemeSelector = () => {
         </TooltipTrigger>
         <TooltipContent>Toggle mode</TooltipContent>
       </Tooltip>
-    </TooltipProvider>
   );
 };
 

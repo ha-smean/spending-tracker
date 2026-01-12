@@ -2,20 +2,27 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  flexRender,
   type ColumnDef,
   getFilteredRowModel,
 } from "@tanstack/react-table";
 import type { Transaction } from "./models";
 import { Button } from "@/components/ui/button";
-import { ChevronsUpDown, Search } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import {
+  CalendarFold,
+  ChevronsUpDown,
+  CircleDollarSign,
+  PiggyBank,
+  ReceiptText,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { categories, loadLS } from "./utils";
+import { categories } from "./utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChangeDate } from "@/components/ui/change-date";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 interface TransactionsTableProps {
   monthlyTransactions: Transaction[];
@@ -23,137 +30,25 @@ interface TransactionsTableProps {
 }
 
 export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: TransactionsTableProps) {
-  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([
-    { id: "date", desc: false },
-  ]);
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([{ id: "date", desc: false }]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
+
+  const tableData = useMemo(() => {
+    console.log("monthly transactions changes", monthlyTransactions);
+    return monthlyTransactions.map((transaction) => ({
+      ...transaction,
+    }));
+  }, [monthlyTransactions]);
+
   const columns: ColumnDef<Transaction>[] = [
-    {
-      accessorKey: "date",
-      header: ({ column }) => (
-        <Button
-          className="flex w-full justify-start gap-2"
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Date
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const [value, setValue] = useState(row.original.date.toString());
-
-        return (
-          <ChangeDate
-            defaultDate={new Date(value)}
-            onDateChange={(date: Date | undefined) => {
-              if (date) {
-                const newValue = date.toISOString().split("T")[0];
-                setValue(newValue);
-                const updated = { ...row.original, date: newValue };
-                onTransactionUpdate?.(updated);
-              }
-            }}
-            className="w-full text-left"
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "description",
-      header: ({ column }) => (
-        <Button
-          className="flex w-full justify-start gap-2"
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Description
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      ),
-      cell: ({ row }) =>
-        row.original.description.length > 35 ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="truncate max-w-95">{row.original.description}</div>
-            </TooltipTrigger>
-            <TooltipContent>{row.original.description}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <div className="truncate max-w-95">{row.original.description}</div>
-        ),
-    },
-    {
-      accessorKey: "amount",
-      header: ({ column }: any) => (
-        <Button
-          className="flex w-full justify-start gap-2"
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Amount
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-    ),
-    cell: ({ row }) => {
-      const isExpense = row.original.type === "expense";
-      const sign = isExpense ? "-" : "+";
-      const colorClass = isExpense ? "text-negative" : "text-positive";
-      return <span className={colorClass}>{sign}${row.original.amount.toFixed(2)}</span>;
-    },
-    },
-    {
-    accessorKey: "category",
-    header: ({ column }) => (
-        <Button
-          className="flex w-full justify-start gap-2"
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Category
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const [isEditing, setIsEditing] = useState(false);
-        const [value, setValue] = useState(row.original.category);
-
-        const handleSave = (newValue: string) => {
-          setValue(newValue);
-          setIsEditing(false);
-
-          const updated = { ...row.original, category: newValue };
-          onTransactionUpdate?.(updated);
-        };
-
-        return isEditing ? (
-          <Select value={value} onValueChange={handleSave}>
-            <SelectTrigger className="w-full" autoFocus>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((cat) => (
-                <SelectItem key={cat.name} value={cat.name}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-        <div onDoubleClick={() => setIsEditing(true)} className={`cursor-pointer ${row.original.category === "Needs Review" ? "text-yellow-500 animate-pulse" : ""}`}>
-            {value}
-          </div>
-        );
-      },
-    },
+    { accessorKey: "date", header: "Date" },
+    { accessorKey: "description", header: "Description" },
+    { accessorKey: "amount", header: "Amount" },
+    { accessorKey: "category", header: "Category" },
   ];
 
   const table = useReactTable({
-    data: monthlyTransactions,
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -165,38 +60,148 @@ export function TransactionsTable({ monthlyTransactions, onTransactionUpdate }: 
       globalFilter,
     },
   });
+
+  const groupedByDate = table.getRowModel().rows.reduce((acc, row) => {
+    const date = row.original.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(row.original);
+    return acc;
+  }, {} as Record<string, Transaction[]>);
+
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) =>
+    sorting[0]?.desc ? b.localeCompare(a) : a.localeCompare(b)
+  );
+
+  // Force table to re-compute when monthlyTransactions changes
+  useEffect(() => {
+    console.log("Resetting table due to monthlyTransactions change");
+    table.reset();
+  }, [monthlyTransactions, table]);
+
   return (
-    <div>
-    <div className="mb-4 flex items-center gap-2 m-2">
-      <Search className="h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder="Search transactions..."
-        value={globalFilter}
-        onChange={(e) => setGlobalFilter(e.target.value)}
-        className="w-full"
-      />
-    </div>
-      <div className="h-100 overflow-y-auto">
-        <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody >
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="flex-1 w-3/4 ">
+      <div className="mb-4 flex items-center gap-2 m-2 ">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search transactions..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          className="w-full"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSorting([{ id: "date", desc: sorting[0]?.desc ? false : true }])}
+          className="flex gap-2"
+        >
+          Sort
+          <ChevronsUpDown className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-6 p-4">
+        {sortedDates.map((date) => (
+          <div key={date}>
+            <h3 className="text-sm font-outfit font-medium mb-3 text-muted-foreground pl-1">
+              {new Date(date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+                timeZone: "UTC",
+              })}
+            </h3>
+            {groupedByDate[date].map((transaction) => (
+              <Dialog key={`${transaction.id}`}>
+                <DialogTrigger
+                  asChild
+                  className="bg-card font-outfit rounded-2xl shadow-sm hover:bg-accent/50 focus:outline-none focus:ring-12 focus:ring-accent/50 "
+                >
+                  <div className=" p-4 cursor-pointer justify-between flex items-center  h-17">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate w-30" title={transaction.description}>
+                        {transaction.description}
+                      </span>
+                    </div>
+                    <Select
+                      value={transaction.category}
+                      onValueChange={(value) => onTransactionUpdate?.({ ...transaction, category: value })}
+                    >
+                      <SelectTrigger className="text-sm text-muted-foreground border-none shadow-none hover:bg-accent/20 cursor-pointer [&_svg]:hidden hover:[&_svg]:block">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.name} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className={transaction.type === "expense" ? " font-semibold" : "text-positive font-semibold"}>
+                      {transaction.type === "expense" ? "-" : ""}${transaction.amount.toFixed(2)}
+                    </span>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
+                  <DialogTitle></DialogTitle>
+                  <DialogDescription></DialogDescription>
+                  <DialogHeader className="text-center"></DialogHeader>
+                  <div className="flex flex-col items-center space-y-6 py-4">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div>
+                        {transaction.type === "expense" ? <CircleDollarSign size={40} /> : <PiggyBank size={50} />}
+                      </div>
+                      <div className="text-4xl font-semibold font-outfit">
+                        {transaction.type === "expense" ? "-" : ""}${transaction.amount.toFixed(2)}
+                      </div>
+                      <div className="text-sm text-muted-foreground font-medium">{transaction.description}</div>
+                    </div>
+
+                    <div className="w-full space-y-3 pt-6">
+                      <div className="grid grid-cols-2 bg-card p-4 rounded-lg shadow-sm items-center">
+                        <div className="flex text-sm font-outfit font-medium gap-2 ">
+                          <CalendarFold size={18} />
+                          Authorized Date
+                        </div>
+                        <ChangeDate
+                          defaultDate={new Date(transaction.date)}
+                          onDateChange={(date) => {
+                            if (date) {
+                              const newDate = date.toISOString().split("T")[0];
+                              onTransactionUpdate?.({ ...transaction, date: newDate });
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 bg-card p-4 rounded-lg shadow-sm items-center">
+                        <div className="flex text-sm font-outfit font-medium jusitify-between ">
+                          <ReceiptText size={18} className="inline-block mr-2" />
+                          Category
+                        </div>
+                        <Select
+                          defaultValue={transaction.category}
+                          onValueChange={(value) => onTransactionUpdate?.({ ...transaction, category: value })}
+                        >
+                          <SelectTrigger className="justify-self-end font-outfit text-sm  border-none shadow-none hover:bg-accent/50 cursor-pointer ">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.name} value={cat.name}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

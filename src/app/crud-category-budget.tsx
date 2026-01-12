@@ -11,6 +11,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import SaveTransactions from "./save-transactions";
+import { Eraser } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface Category {
   name: string;
@@ -80,9 +84,9 @@ export function CRUDCategoryBudget({
   return (
     <>
       <Dialog open={showOnboardingDialog} onOpenChange={handleOpenChange}>
-        <DialogContent className="w-[50vw]" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className=" " onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="text-3xl font-bold">
+            <DialogTitle className="flex flex-row items-center text-3xl font-bold ">
               {isEditingBudget ? "Adjust your budget settings" : "Set up your spending plan"}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
@@ -113,7 +117,12 @@ export function CRUDCategoryBudget({
                 {monthlyIncome !== "" && (
                   <div className="px-3 py-2 bg-muted rounded-lg">
                     <p className="text-sm">
-                      Remaining: <span className={remainingIncome < 0 ? "text-destructive font-semibold" : "text-green-600 font-semibold"}>
+                      Remaining:{" "}
+                      <span
+                        className={
+                          remainingIncome < 0 ? "text-destructive font-semibold" : "text-green-600 font-semibold"
+                        }
+                      >
                         ${remainingIncome.toFixed(2)}
                       </span>
                     </p>
@@ -150,17 +159,27 @@ export function CRUDCategoryBudget({
           </div>
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-4 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowClearDialog(true)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              Clear local storage
-            </Button>
-            <Button onClick={handleSave} className="sm:w-auto" size="lg">
-              {isEditingBudget ? "Save Changes" : "Get Started"}
-            </Button>
+            <div className="flex justify-between">
+              {isEditingBudget && <SaveTransactions />}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowClearDialog(true)}
+                    className="text-muted-foreground hover:text-destructive flex items-center gap-2"
+                  >
+                    <Eraser className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear all data</TooltipContent>
+              </Tooltip>
+            </div>
+            <div>
+              <Button onClick={handleSave} size="sm">
+                {isEditingBudget ? "Save Changes" : "Get Started"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -182,6 +201,7 @@ export function CRUDCategoryBudget({
               onClick={() => {
                 localStorage.clear();
                 window.location.reload();
+                toast.success("All data cleared");
               }}
             >
               Clear

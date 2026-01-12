@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, use } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Transaction } from "./models";
 import { categories } from "./utils";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,6 @@ export function CategoryBudgetDashboard({ monthlyTransactions, selectedMonth, ca
 
   return (
     <div className="space-y-2 p-4">
-      <h2 className="text-lg font-bold mb-4">Budget Overview</h2>
       <div className="grid grid-cols-2 gap-4">
         {categories
           .filter((cat) => cat.name !== "Jazmin Purchases")
@@ -66,7 +65,7 @@ export function CategoryBudgetDashboard({ monthlyTransactions, selectedMonth, ca
             const isOverBudget = spent > budget;
 
             return (
-              <div key={cat.name} className="rounded-lg p-3 shadow-sm border ">
+              <div key={cat.name} className="rounded-lg p-3 shadow-sm border border-muted">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div style={{ backgroundColor: cat.color }} className="w-3 h-3 rounded-full" />
